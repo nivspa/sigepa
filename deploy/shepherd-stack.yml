@@ -1,0 +1,26 @@
+# Stack para colar no Portainer (ambiente PRD / Swarm).
+# O Shepherd verifica o Docker Hub a cada 5 min e atualiza serviços que usam nivspa/sigepa:producao.
+#
+# Se a imagem for PRIVADA no Docker Hub, descomente REGISTRY_USER e REGISTRY_PASSWORD
+# e crie secrets no Swarm (Portainer → Secrets).
+
+version: "3.8"
+
+services:
+  shepherd:
+    image: containrrr/shepherd:latest
+    environment:
+      SLEEP_TIME: 5m
+      FILTER_SERVICES: sigepa
+      # REGISTRY_USER: seu_usuario_dockerhub
+      # REGISTRY_PASSWORD: sua_senha_ou_token
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
