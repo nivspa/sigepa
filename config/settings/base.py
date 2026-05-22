@@ -18,6 +18,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # Leitura do arquivo .env
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
+# Cadastro público desabilitado — usuários são criados no painel /admin/
+SIGEPA_ALLOW_PUBLIC_REGISTRATION = env.bool('SIGEPA_ALLOW_PUBLIC_REGISTRATION', default=False)
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY')
 

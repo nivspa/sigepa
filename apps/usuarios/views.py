@@ -1,7 +1,8 @@
+from django.conf import settings
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.views import LoginView
@@ -109,8 +110,17 @@ def home(request):
 
 def register(request):
     """
-    View para registro de novos usuários.
+    Cadastro público desabilitado por padrão.
+    Novos usuários devem ser criados no painel administrativo (/admin/).
     """
+    if not getattr(settings, 'SIGEPA_ALLOW_PUBLIC_REGISTRATION', False):
+        messages.info(
+            request,
+            'O cadastro de novos usuários é feito pelo administrador do sistema. '
+            'Solicite seu acesso à equipe responsável pelo SIGEPA.',
+        )
+        return redirect('usuarios:login')
+
     if request.method == 'POST':
         form = UsuarioCreationForm(request.POST)
         if form.is_valid():
