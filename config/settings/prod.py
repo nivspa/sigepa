@@ -48,13 +48,24 @@ EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@sigepa.com')
 
-# Cache configuration para produção
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': env('REDIS_URL', default='redis://127.0.0.1:6379/1'),
+# Cache — Redis só se USE_REDIS=True e REDIS_URL configurado (senão LocMem, evita 500 sem Redis)
+USE_REDIS = env.bool('USE_REDIS', default=False)
+REDIS_URL = env('REDIS_URL', default='')
+
+if USE_REDIS and REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'sigepa-prod',
+        }
+    }
 
 # Estáticos com hash no nome (ocorrencia-form.abc123.js) — evita JS/CSS antigo no navegador
 STORAGES = {
