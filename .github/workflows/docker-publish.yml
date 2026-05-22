@@ -1,5 +1,5 @@
-# Publica nivspa/sigepa:latest no Docker Hub a cada push na main.
-# O Shepherd em produção puxa a tag latest automaticamente (ver deploy/shepherd-stack.yml).
+# Publica nivspa/sigepa:producao e :latest no Docker Hub a cada push na main.
+# Produção (Swarm) usa a tag producao — o Shepherd monitora sigepa_sigepa.
 
 name: Publicar imagem Docker
 
@@ -41,6 +41,7 @@ jobs:
           context: .
           push: true
           tags: |
+            ${{ env.IMAGE }}:producao
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}
           build-args: |
@@ -57,6 +58,7 @@ jobs:
       - name: Resumo
         run: |
           echo "Imagem publicada:"
+          echo "  ${{ env.IMAGE }}:producao"
           echo "  ${{ env.IMAGE }}:latest"
           echo "  ${{ env.IMAGE }}:${{ github.sha }}"
           echo ""

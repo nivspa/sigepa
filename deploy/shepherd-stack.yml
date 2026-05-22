@@ -1,6 +1,11 @@
-# Stack para Portainer (PRD / Swarm).
-# FILTER_SERVICES precisa ser filtro do Docker: name=... ou label=...
-# Ex.: name=sigepa_sigepa (nome exato do serviço no Swarm)
+# Stack para colar no Portainer (ambiente PRD / Swarm).
+# O Shepherd verifica o Docker Hub a cada 5 min e atualiza serviços que usam nivspa/sigepa:producao.
+#
+# No Portainer → stack → Environment variables (NÃO commitar token no Git):
+#   DOCKERHUB_USER=nivspa
+#   DOCKERHUB_TOKEN=<token do Docker Hub>
+#
+# Ou use Swarm Secrets e monte como arquivo — ver documentação do Shepherd.
 
 version: "3.8"
 
@@ -11,7 +16,7 @@ services:
       SLEEP_TIME: 5m
       FILTER_SERVICES: name=sigepa_sigepa
       IGNORELIST_SERVICES: shepherd-sigepa_shepherd
-      # Login no Docker Hub — evita erro "toomanyrequests" (defina no Portainer, ver shepherd.env.example)
+      # OBRIGATÓRIO — evita "toomanyrequests" ao puxar do Docker Hub
       REGISTRY_USER: ${DOCKERHUB_USER:-nivspa}
       REGISTRY_PASSWORD: ${DOCKERHUB_TOKEN}
     volumes:
