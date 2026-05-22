@@ -21,4 +21,5 @@ urlpatterns = [
     
     # API para carregar municípios por estado
     path('api/municipios/', views.load_municipios, name='load_municipios'),
+    path('api/cep/', views.consulta_cep, name='consulta_cep'),
 ]

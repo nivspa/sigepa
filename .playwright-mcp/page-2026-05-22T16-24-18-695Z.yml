@@ -1,0 +1,145 @@
+- generic [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "SESPA SIGEPA" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img "SESPA" [ref=e5]
+        - generic [ref=e6]: SIGEPA
+      - button [ref=e7] [cursor=pointer]
+      - text:  
+  - main [ref=e9]:
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]: S
+        - heading "Bem-vindo de volta" [level=4] [ref=e14]
+        - paragraph [ref=e15]: Insira suas credenciais para acessar o SIGEPA
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - generic [ref=e19]: Usuário
+            - textbox "Usuário" [active] [ref=e20]
+          - generic [ref=e21]:
+            - generic [ref=e23]: Senha
+            - generic [ref=e24]:
+              - textbox "Senha" [ref=e25]
+              - button "" [ref=e26] [cursor=pointer]:
+                - generic [ref=e27]: 
+          - button " Entrar" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: 
+            - text: Entrar
+        - paragraph [ref=e31]:
+          - text: Não tem uma conta?
+          - link "Registre-se" [ref=e32] [cursor=pointer]:
+            - /url: /register/
+  - contentinfo [ref=e33]:
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - heading "SIGEPA" [level=5] [ref=e37]
+          - paragraph [ref=e38]: Sistema de Gerenciamento de Escalpelamentos
+          - paragraph [ref=e39]: Desenvolvido para a Secretaria de Estado de Saúde Pública do Pará
+        - generic [ref=e40]:
+          - heading "Links Úteis" [level=5] [ref=e41]
+          - list [ref=e42]:
+            - listitem [ref=e43]:
+              - link "Dashboard" [ref=e44] [cursor=pointer]:
+                - /url: /
+            - listitem [ref=e45]:
+              - link "Ocorrências" [ref=e46] [cursor=pointer]:
+                - /url: /core/ocorrencias/
+            - listitem [ref=e47]:
+              - link "Perfil" [ref=e48] [cursor=pointer]:
+                - /url: /profile/
+        - generic [ref=e49]:
+          - heading "Contato" [level=5] [ref=e50]
+          - paragraph [ref=e51]:
+            - generic [ref=e52]: 
+            - text: contato@sespa.pa.gov.br
+            - generic [ref=e53]: 
+            - text: (91) 3204-0000
+      - separator [ref=e54]
+      - generic [ref=e55]:
+        - paragraph [ref=e57]: © 2026 SESPA - Secretaria de Estado de Saúde Pública do Pará
+        - generic [ref=e58]:
+          - img "SUS SESPA" [ref=e59]
+          - img "SESPA" [ref=e60]
+  - list [ref=e62]:
+    - listitem [ref=e63]:
+      - link "Esconder »" [ref=e64] [cursor=pointer]:
+        - /url: "#"
+    - listitem [ref=e65]:
+      - link "Toggle Theme" [ref=e66] [cursor=pointer]:
+        - /url: "#"
+        - text: Toggle Theme
+        - img [ref=e67]
+    - listitem [ref=e69]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e70]
+      - link "Histórico /login/?next=/core/ocorrencias/nova/" [ref=e71] [cursor=pointer]:
+        - /url: "#"
+        - text: Histórico
+        - text: /login/?next=/core/ocorrencias/nova/
+    - listitem [ref=e72]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e73]
+      - link "Versões Django 5.2.6" [ref=e74] [cursor=pointer]:
+        - /url: "#"
+        - text: Versões
+        - text: Django 5.2.6
+    - listitem [ref=e75]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e76]
+      - generic [ref=e77]:
+        - text: Tempo
+        - text: "Total: 10.81ms"
+    - listitem [ref=e78]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e79]
+      - link "Configurações" [ref=e80] [cursor=pointer]:
+        - /url: "#"
+    - listitem [ref=e81]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e82]
+      - link "Cabeçalhos" [ref=e83] [cursor=pointer]:
+        - /url: "#"
+    - listitem [ref=e84]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e85]
+      - link "Requisição CustomLoginView" [ref=e86] [cursor=pointer]:
+        - /url: "#"
+        - text: Requisição
+        - text: CustomLoginView
+    - listitem [ref=e87]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e88]
+      - link "SQL 0 queries in 0.00ms" [ref=e89] [cursor=pointer]:
+        - /url: "#"
+        - text: SQL
+        - text: 0 queries in 0.00ms
+    - listitem [ref=e90]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e91]
+      - link "Arquivos estáticos 4 arquivos utilizados" [ref=e92] [cursor=pointer]:
+        - /url: "#"
+        - text: Arquivos estáticos
+        - text: 4 arquivos utilizados
+    - listitem [ref=e93]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e94]
+      - link "Templates usuarios/login.html" [ref=e95] [cursor=pointer]:
+        - /url: "#"
+        - text: Templates
+        - text: usuarios/login.html
+    - listitem [ref=e96]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e97]
+      - link "Alerts" [ref=e98] [cursor=pointer]:
+        - /url: "#"
+    - listitem [ref=e99]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e100]
+      - link "Cache 0 chamada em 0.00ms" [ref=e101] [cursor=pointer]:
+        - /url: "#"
+        - text: Cache
+        - text: 0 chamada em 0.00ms
+    - listitem [ref=e102]:
+      - checkbox "Desativar para próximas requisições" [checked] [ref=e103]
+      - link "Sinais 34 receptores de 15 sinais" [ref=e104] [cursor=pointer]:
+        - /url: "#"
+        - text: Sinais
+        - text: 34 receptores de 15 sinais
+    - listitem [ref=e105]:
+      - checkbox "Habilitar para próximas requisições" [ref=e106]
+      - generic [ref=e107]: Interceptar redirecionamentos
+    - listitem [ref=e108]:
+      - checkbox "Habilitar para próximas requisições" [ref=e109]
+      - generic [ref=e110]: Profiling

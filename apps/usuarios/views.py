@@ -25,7 +25,7 @@ def home(request):
         total_ocorrencias = Ocorrencia.objects.count()
         
         # Ocorrências do mês atual
-        hoje = timezone.now().date()
+        hoje = timezone.localdate()
         inicio_mes = hoje.replace(day=1)
         ocorrencias_mes = Ocorrencia.objects.filter(
             data_notificacao__gte=inicio_mes

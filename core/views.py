@@ -19,6 +19,7 @@ from .forms import (
     OcorrenciaForm, EvolucaoTratamentoForm, EvolucaoTratamentoComplicacaoFormSet,
     EvolucaoTratamentoProcedimentoFormSet, OcorrenciaParteAtingidaFormSet
 )
+from .cep import consultar_cep, limpar_cep
 
 
 class OcorrenciaListView(LoginRequiredMixin, ListView):
@@ -382,6 +383,29 @@ def autocomplete_estabelecimentos(request):
             'has_next': estabelecimentos_page.has_next(),
             'has_previous': estabelecimentos_page.has_previous()
         }
+    })
+
+
+@csrf_exempt
+def consulta_cep(request):
+    """Consulta endereço pelo CEP (ViaCEP)."""
+    cep = limpar_cep(request.GET.get('cep', ''))
+    if len(cep) != 8:
+        return JsonResponse({
+            'success': False,
+            'error': 'Informe um CEP com 8 dígitos.',
+        }, status=400)
+
+    endereco = consultar_cep(cep)
+    if not endereco:
+        return JsonResponse({
+            'success': False,
+            'error': 'CEP não encontrado.',
+        }, status=404)
+
+    return JsonResponse({
+        'success': True,
+        'endereco': endereco,
     })
 
 

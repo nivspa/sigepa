@@ -4,6 +4,184 @@
 {% block title %}{{ title }} - SIGEPA{% endblock %}
 
 {% block content %}
+<style>
+    /* Select2: esconde o <select> nativo */
+    select.select2-hidden-accessible {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+    }
+
+    /* Select2 alinhado ao .form-select / .form-control do SIGEPA */
+    .select2-container--bootstrap-5 {
+        width: 100% !important;
+    }
+
+    #ocorrencia-form .select2-container--bootstrap-5 .select2-selection--single {
+        border: 2px solid #e5e7eb !important;
+        border-radius: 12px !important;
+        min-height: calc(1.5em + 1.5rem + 4px) !important;
+        height: auto !important;
+        padding: 0.75rem 2.25rem 0.75rem 1rem !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+    }
+
+    #ocorrencia-form .select2-container--bootstrap-5.select2-container--focus .select2-selection--single,
+    #ocorrencia-form .select2-container--bootstrap-5.select2-container--open .select2-selection--single {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
+        background: #fff !important;
+        outline: none !important;
+    }
+
+    #ocorrencia-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        padding: 0 !important;
+        line-height: 1.5 !important;
+        color: #212529;
+    }
+
+    #ocorrencia-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+        color: #6b7280;
+    }
+
+    #ocorrencia-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+        top: 50% !important;
+        right: 0.75rem !important;
+        transform: translateY(-50%);
+        height: auto !important;
+        width: 1.25rem !important;
+    }
+
+    #ocorrencia-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow b {
+        border-color: #6b7280 transparent transparent transparent !important;
+        border-width: 0.35rem 0.35rem 0 0.35rem !important;
+    }
+
+    #ocorrencia-form .select2-container--bootstrap-5 .select2-selection__clear {
+        margin-right: 0.25rem;
+        color: #6b7280;
+    }
+
+    /* Wrapper: dropdown com a mesma largura do campo */
+    #ocorrencia-form .select-busca-wrap {
+        position: relative;
+        width: 100%;
+        z-index: 1;
+    }
+
+    #ocorrencia-form .select-busca-wrap.select2-aberto {
+        z-index: 1050;
+        min-height: calc(1.5em + 1.5rem + 4px);
+    }
+
+    #ocorrencia-form .select-busca-wrap.select2-aberto .select2-selection--single {
+        visibility: hidden;
+        position: absolute;
+        height: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    #ocorrencia-form .select-busca-wrap .select2-dropdown.select2-busca-unificada {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+        margin: 0 !important;
+        border: 2px solid #3b82f6 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
+        overflow: hidden;
+        background: #fff !important;
+    }
+
+    #ocorrencia-form .select-busca-wrap .select2-search--dropdown {
+        padding: 0.75rem 2.25rem 0.5rem 1rem !important;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    #ocorrencia-form .select-busca-wrap .select2-search__field {
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        background: transparent !important;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    #ocorrencia-form .select-busca-wrap .select2-results__options {
+        max-height: 220px;
+    }
+
+    #ocorrencia-form .select2-container--bootstrap-5 .select2-results__option--highlighted.select2-results__option--selectable {
+        background-color: #3b82f6 !important;
+    }
+
+    #ocorrencia-form input.idade-calculada {
+        background-color: var(--gray-100, #f3f4f6) !important;
+        cursor: not-allowed;
+    }
+
+    /* CNES dentro do input-group (campo + lupa) */
+    #ocorrencia-form .input-group .select-busca-wrap {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 1%;
+    }
+
+    #ocorrencia-form .input-group .select-busca-wrap .select2-container {
+        width: 100% !important;
+    }
+
+    /* Partes atingidas — linha select + excluir */
+    #ocorrencia-form #parte-atingida-formset {
+        max-width: 42rem;
+    }
+
+    #ocorrencia-form .parte-atingida-form {
+        margin-bottom: 0.65rem;
+    }
+
+    #ocorrencia-form .parte-atingida-linha .form-select {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        min-height: calc(1.5em + 1.5rem + 4px);
+    }
+
+    #ocorrencia-form .parte-atingida-linha .btn-remover-parte {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        min-width: 2.85rem;
+        padding-left: 0.65rem;
+        padding-right: 0.65rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #ocorrencia-form .parte-atingida-campos-ocultos {
+        display: none !important;
+    }
+
+    #ocorrencia-form .btn-adicionar-parte-atingida {
+        max-width: 42rem;
+    }
+</style>
 <!-- Hero Section -->
 <div class="hero-background py-4 mb-4">
     <div class="container hero-content">
@@ -30,7 +208,7 @@
     </div>
 </div>
 
-<form method="post" id="ocorrencia-form">
+<form method="post" id="ocorrencia-form" data-edit-mode="{% if form.instance.pk %}true{% else %}false{% endif %}">
     {% csrf_token %}
     
     <ul class="nav nav-tabs" id="ocorrencia-tabs" role="tablist">
@@ -119,7 +297,7 @@
                             </label>
                             <div class="input-group">
                                 {{ form.id_cnes }}
-                                <button type="button" class="btn btn-outline-secondary" onclick="openSearchModal('estabelecimentos', '#id_id_cnes')">
+                                <button type="button" class="btn btn-outline-secondary" title="Pesquisar em lista" onclick="openSearchModal('estabelecimentos', selectByName('id_cnes'))">
                                     <i class="fas fa-search"></i>
                                 </button>
                             </div>
@@ -200,8 +378,8 @@
                                 <div class="text-danger">{{ form.id_sexo.errors }}</div>
                             {% endif %}
                         </div>
-                        <div class="col-md-3">
-                            <label for="{{ form.id_tempo_gestacao.id_for_label }}" class="form-label">
+                        <div class="col-md-3 d-none" id="campo-tempo-gestacao-wrap">
+                            <label for="{{ form.id_tempo_gestacao.id_for_label }}" class="form-label" id="label-tempo-gestacao">
                                 Tempo de Gestação *
                             </label>
                             {{ form.id_tempo_gestacao }}
@@ -260,7 +438,7 @@
                             </label>
                             <div class="input-group">
                                 {{ form.id_cbo }}
-                                <button type="button" class="btn btn-outline-secondary" onclick="openSearchModal('cbo', '#id_id_cbo')">
+                                <button type="button" class="btn btn-outline-secondary" title="Pesquisar em lista" onclick="openSearchModal('cbo', selectByName('id_cbo'))">
                                     <i class="fas fa-search"></i>
                                 </button>
                             </div>
@@ -314,6 +492,47 @@
             <div class="card mt-3">
                 <div class="card-body">
                     <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="{{ form.cep.id_for_label }}" class="form-label">
+                                CEP
+                            </label>
+                            <div class="input-group">
+                                {{ form.cep }}
+                                <span class="input-group-text d-none" id="cep-loading" title="Buscando endereço...">
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                </span>
+                            </div>
+                            {% if form.cep.errors %}
+                                <div class="text-danger">{{ form.cep.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-5">
+                            <label for="{{ form.logradouro.id_for_label }}" class="form-label">
+                                Logradouro
+                            </label>
+                            {{ form.logradouro }}
+                            {% if form.logradouro.errors %}
+                                <div class="text-danger">{{ form.logradouro.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-2">
+                            <label for="{{ form.numero.id_for_label }}" class="form-label">
+                                Número
+                            </label>
+                            {{ form.numero }}
+                            {% if form.numero.errors %}
+                                <div class="text-danger">{{ form.numero.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-2">
+                            <label for="{{ form.complemento.id_for_label }}" class="form-label">
+                                Complemento
+                            </label>
+                            {{ form.complemento }}
+                            {% if form.complemento.errors %}
+                                <div class="text-danger">{{ form.complemento.errors }}</div>
+                            {% endif %}
+                        </div>
                         <div class="col-md-4">
                             <label for="{{ form.id_uf_residencia.id_for_label }}" class="form-label">
                                 UF de Residência
@@ -341,16 +560,7 @@
                                 <div class="text-danger">{{ form.id_zona.errors }}</div>
                             {% endif %}
                         </div>
-                        <div class="col-md-6">
-                            <label for="{{ form.distrito.id_for_label }}" class="form-label">
-                                Distrito
-                            </label>
-                            {{ form.distrito }}
-                            {% if form.distrito.errors %}
-                                <div class="text-danger">{{ form.distrito.errors }}</div>
-                            {% endif %}
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="{{ form.bairro.id_for_label }}" class="form-label">
                                 Bairro
                             </label>
@@ -359,43 +569,16 @@
                                 <div class="text-danger">{{ form.bairro.errors }}</div>
                             {% endif %}
                         </div>
-                        <div class="col-md-8">
-                            <label for="{{ form.logradouro.id_for_label }}" class="form-label">
-                                Logradouro
+                        <div class="col-md-4">
+                            <label for="{{ form.distrito.id_for_label }}" class="form-label">
+                                Distrito
                             </label>
-                            {{ form.logradouro }}
-                            {% if form.logradouro.errors %}
-                                <div class="text-danger">{{ form.logradouro.errors }}</div>
+                            {{ form.distrito }}
+                            {% if form.distrito.errors %}
+                                <div class="text-danger">{{ form.distrito.errors }}</div>
                             {% endif %}
                         </div>
-                        <div class="col-md-2">
-                            <label for="{{ form.numero.id_for_label }}" class="form-label">
-                                Número
-                            </label>
-                            {{ form.numero }}
-                            {% if form.numero.errors %}
-                                <div class="text-danger">{{ form.numero.errors }}</div>
-                            {% endif %}
-                        </div>
-                        <div class="col-md-2">
-                            <label for="{{ form.cep.id_for_label }}" class="form-label">
-                                CEP
-                            </label>
-                            {{ form.cep }}
-                            {% if form.cep.errors %}
-                                <div class="text-danger">{{ form.cep.errors }}</div>
-                            {% endif %}
-                        </div>
-                        <div class="col-md-6">
-                            <label for="{{ form.complemento.id_for_label }}" class="form-label">
-                                Complemento
-                            </label>
-                            {{ form.complemento }}
-                            {% if form.complemento.errors %}
-                                <div class="text-danger">{{ form.complemento.errors }}</div>
-                            {% endif %}
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="{{ form.telefone.id_for_label }}" class="form-label">
                                 Telefone
                             </label>
@@ -528,7 +711,7 @@
                             </label>
                             <div class="input-group">
                                 {{ form.id_cid }}
-                                <button type="button" class="btn btn-outline-secondary" onclick="openSearchModal('cid', '#id_id_cid')">
+                                <button type="button" class="btn btn-outline-secondary" title="Pesquisar em lista" onclick="openSearchModal('cid', selectByName('id_cid'))">
                                     <i class="fas fa-search"></i>
                                 </button>
                             </div>
@@ -595,40 +778,59 @@
                     <!-- Formset de Partes Atingidas -->
                     <div class="row g-3 mt-4">
                         <div class="col-12">
-                            <h5 class="mb-3"><i class="fas fa-body me-2"></i>Partes Atingidas</h5>
+                            <h5 class="mb-2"><i class="fas fa-body me-2"></i>Partes Atingidas</h5>
+                            {% if parte_atingida_formset.forms %}
+                                <label class="form-label mb-2"
+                                       for="{{ parte_atingida_formset.forms.0.tipo_parte_atingida_idtipo_parte_atingida.id_for_label }}">
+                                    Tipo de Parte Atingida
+                                </label>
+                            {% else %}
+                                <span class="form-label mb-2 d-block">Tipo de Parte Atingida</span>
+                            {% endif %}
                             <div id="parte-atingida-formset">
                                 {{ parte_atingida_formset.management_form }}
                                 {% for form in parte_atingida_formset %}
-                                    <div class="row g-3 mb-3 parte-atingida-form" data-form-index="{{ forloop.counter0 }}">
-                                        <div class="col-md-11">
-                                            {% if forloop.first %}
-                                                <label for="{{ form.tipo_parte_atingida_idtipo_parte_atingida.id_for_label }}" class="form-label">
-                                                    Tipo de Parte Atingida
-                                                </label>
-                                            {% endif %}
+                                    <div class="parte-atingida-form" data-form-index="{{ forloop.counter0 }}">
+                                        <div class="input-group parte-atingida-linha">
                                             {{ form.tipo_parte_atingida_idtipo_parte_atingida }}
-                                            {% if form.tipo_parte_atingida_idtipo_parte_atingida.errors %}
-                                                <div class="text-danger">{{ form.tipo_parte_atingida_idtipo_parte_atingida.errors }}</div>
-                                            {% endif %}
-                                        </div>
-                                        <div class="col-md-1">
-                                            <button type="button" class="btn btn-danger btn-sm w-100{% if forloop.first %} mt-4{% endif %}" onclick="removeParteAtingidaForm(this)">
+                                            <button type="button" class="btn btn-outline-danger btn-remover-parte"
+                                                    title="Remover parte atingida"
+                                                    onclick="removeParteAtingidaForm(this)">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
-                                        <!-- Campos ocultos necessários para o formset -->
-                                        {% if form.pk %}
-                                            {{ form.pk }}
+                                        {% if form.tipo_parte_atingida_idtipo_parte_atingida.errors %}
+                                            <div class="text-danger small mt-1">{{ form.tipo_parte_atingida_idtipo_parte_atingida.errors }}</div>
                                         {% endif %}
-                                        {% if form.id %}
-                                            {{ form.id }}
-                                        {% endif %}
-                                        {{ form.DELETE }}
+                                        <div class="parte-atingida-campos-ocultos">
+                                            {% if form.pk %}{{ form.pk }}{% endif %}
+                                            {% if form.id %}{{ form.id }}{% endif %}
+                                            {{ form.DELETE }}
+                                        </div>
                                     </div>
                                 {% endfor %}
                             </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addParteAtingidaForm()">
-                                <i class="fas fa-plus"></i> Adicionar Parte Atingida
+                            {# Modelo oculto para clonar quando não houver nenhuma linha visível #}
+                            <div id="parte-atingida-empty-form-template" class="d-none" aria-hidden="true">
+                                {% with ef=parte_atingida_formset.empty_form %}
+                                <div class="parte-atingida-form parte-atingida-form--template" data-form-index="__prefix__">
+                                    <div class="input-group parte-atingida-linha">
+                                        {{ ef.tipo_parte_atingida_idtipo_parte_atingida }}
+                                        <button type="button" class="btn btn-outline-danger btn-remover-parte"
+                                                title="Remover parte atingida"
+                                                onclick="removeParteAtingidaForm(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="parte-atingida-campos-ocultos">
+                                        {{ ef.DELETE }}
+                                    </div>
+                                </div>
+                                {% endwith %}
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-3 btn-adicionar-parte-atingida w-100"
+                                    onclick="addParteAtingidaForm()">
+                                <i class="fas fa-plus me-1"></i> Adicionar Parte Atingida
                             </button>
                         </div>
                     </div>
@@ -739,7 +941,7 @@
                             </label>
                             <div class="input-group">
                                 {{ form.id_cnes_invertigador }}
-                                <button type="button" class="btn btn-outline-secondary" onclick="openSearchModal('estabelecimentos', '#id_id_cnes_invertigador')">
+                                <button type="button" class="btn btn-outline-secondary" title="Pesquisar em lista" onclick="openSearchModal('estabelecimentos', selectByName('id_cnes_invertigador'))">
                                     <i class="fas fa-search"></i>
                                 </button>
                             </div>
@@ -762,7 +964,7 @@
                             </label>
                             <div class="input-group">
                                 {{ form.funcao_invertigador }}
-                                <button type="button" class="btn btn-outline-secondary" onclick="openSearchModal('cbo', '#id_funcao_invertigador')">
+                                <button type="button" class="btn btn-outline-secondary" title="Pesquisar em lista" onclick="openSearchModal('cbo', selectByName('funcao_invertigador'))">
                                     <i class="fas fa-search"></i>
                                 </button>
                             </div>
@@ -896,7 +1098,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/ocorrencia-form.js' %}"></script>
+<script src="{% static 'js/ocorrencia-form.js' %}?v=26"></script>
 <script>
 // Funções de navegação como fallback (caso não sejam carregadas do arquivo externo)
 if (typeof goToNextTab === 'undefined') {

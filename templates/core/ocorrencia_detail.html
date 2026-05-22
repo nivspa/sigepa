@@ -152,10 +152,12 @@
                         <strong>Sexo:</strong>
                         <p>{{ ocorrencia.id_sexo.descricao }}</p>
                     </div>
+                    {% if ocorrencia.id_sexo.idsexo == 2 or "feminin" in ocorrencia.id_sexo.descricao|lower %}
                     <div class="col-md-3">
                         <strong>Tempo de Gestação:</strong>
                         <p>{{ ocorrencia.id_tempo_gestacao.descricao }}</p>
                     </div>
+                    {% endif %}
                     <div class="col-md-3">
                         <strong>Raça:</strong>
                         <p>{{ ocorrencia.id_raca.descricao }}</p>

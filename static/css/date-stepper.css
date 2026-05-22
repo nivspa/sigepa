@@ -1,0 +1,64 @@
+/* Campo de data com botões − / + (SIGEPA) */
+.date-stepper-group {
+    width: 100%;
+}
+
+.date-stepper-group .date-stepper-btn {
+    flex: 0 0 auto;
+    width: 2.75rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--gray-200, #e5e7eb);
+    background: var(--gray-100, #f3f4f6);
+    color: var(--gray-600, #4b5563);
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1;
+    border-radius: 12px;
+    transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.date-stepper-group .date-stepper-btn:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: none;
+}
+
+.date-stepper-group .date-stepper-btn:last-child {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: none;
+}
+
+.date-stepper-group .date-stepper-btn:hover:not(:disabled) {
+    background: var(--gray-200, #e5e7eb);
+    border-color: var(--gray-300, #d1d5db);
+    color: var(--gray-800, #1f2937);
+}
+
+.date-stepper-group .date-stepper-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.date-stepper-group .date-stepper-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border-radius: 0 !important;
+    text-align: center;
+}
+
+.date-stepper-group .date-stepper-input:focus {
+    z-index: 2;
+    position: relative;
+}
+
+.date-stepper-group .date-stepper-btn:first-child {
+    margin-right: -2px;
+}
+
+.date-stepper-group .date-stepper-btn:last-child {
+    margin-left: -2px;
+}

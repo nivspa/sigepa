@@ -1,7 +1,10 @@
 from django import forms
 from django.forms import ModelForm, inlineformset_factory
 from django.core.exceptions import ValidationError
-from datetime import date
+from django.utils import timezone
+from django.db.models import Q
+from .dates import IDADE_MAXIMA, calcular_idade_anos, data_referencia_para_idade
+from .validators import limpar_digitos, validar_cns, validar_cpf
 from .models import (
     Ocorrencia, EvolucaoTratamento, EvolucaoTratamentoHasTipoComplicacao,
     EvolucaoTratamentoHasTipoProcedimento, OcorrenciaHasTipoParteAtingida,
@@ -10,6 +13,47 @@ from .models import (
     TipoCausaAcidente, TipoTransporte, TipoComplicacao, TipoProcedimento,
     TipoRegimeAtendimento, TipoEvolucaoCaso, TipoParteAtingida
 )
+
+# SIGEPA — sistema estadual do Pará; acidente e investigador usam municípios do PA
+UF_PARA_ID = 15
+SEXO_FEMININO_ID = 2
+TEMPO_GESTACAO_NAO_APLICA_ID = 21
+
+
+def sexo_e_feminino(sexo):
+    if not sexo:
+        return False
+    if sexo.pk == SEXO_FEMININO_ID:
+        return True
+    descricao = (sexo.descricao or '').lower()
+    return 'feminin' in descricao
+
+
+def tempo_gestacao_nao_aplica():
+    try:
+        return TempoGestacao.objects.get(pk=TEMPO_GESTACAO_NAO_APLICA_ID)
+    except TempoGestacao.DoesNotExist:
+        return TempoGestacao.objects.filter(descricao__icontains='não se aplica').first()
+
+MUNICIPIOS_PARA_FIELDS = ('id_municipio_ocorrencia', 'id_municipio_investigador')
+MUNICIPIOS_UF_DEPENDENTES = ('id_municipio_notificacao', 'id_municipio_residencia', 'id_municipio_transferencia')
+
+OCORRENCIA_DATE_FIELDS = (
+    'data_notificacao', 'data_acidente', 'data_cadastro', 'data_nascimento',
+    'data_investigacao', 'data_atendimento', 'data_transferencia', 'data_cadastro_atendimento',
+)
+EVOLUCAO_DATE_FIELDS = (
+    'data_entrada', 'data_entrada_espaco_acolher', 'data_saida_espaco_acolher',
+    'data_obito', 'data_encerramento',
+)
+
+
+def aplicar_limite_data_hoje(form, field_names):
+    """Impede seleção de datas futuras no picker nativo (complementa date-stepper.js)."""
+    max_hoje = timezone.localdate().isoformat()
+    for field_name in field_names:
+        if field_name in form.fields:
+            form.fields[field_name].widget.attrs['max'] = max_hoje
 
 
 class OcorrenciaForm(ModelForm):
@@ -22,24 +66,56 @@ class OcorrenciaForm(ModelForm):
             # Aba 1: Dados da Notificação
             'tipo_notificacao': forms.Select(attrs={'class': 'form-select'}),
             'data_notificacao': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id': 'id_data_notificacao'}),
-            'id_uf_notificacao': forms.Select(attrs={'class': 'form-select'}),
+            'id_uf_notificacao': forms.Select(attrs={
+                'class': 'form-select select-busca-uf',
+                'data-placeholder': 'Digite para buscar a UF...',
+            }),
             'id_municipio_notificacao': forms.Select(attrs={'class': 'form-select'}),
-            'id_cnes': forms.Select(attrs={'class': 'form-control'}),
+            'id_cnes': forms.Select(attrs={
+                'class': 'form-select select-busca-cnes',
+                'data-placeholder': 'Digite CNES ou nome (mín. 3 caracteres)...',
+            }),
             'data_acidente': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id': 'id_data_acidente'}),
             'data_cadastro': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id': 'id_data_cadastro'}),
 
             # Aba 2: Dados do Paciente
             'nome_paciente': forms.TextInput(attrs={'class': 'form-control'}),
-            'data_nascimento': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id': 'id_data_nascimento'}),
-            'idade': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '3'}),
+            'data_nascimento': forms.DateInput(format='%Y-%m-%d', attrs={
+                'class': 'form-control',
+                'type': 'date',
+                'id': 'id_data_nascimento',
+                'lang': 'pt-BR',
+            }),
+            'idade': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '3',
+                'inputmode': 'numeric',
+                'id': 'id_idade',
+                'autocomplete': 'off',
+            }),
             'id_sexo': forms.Select(attrs={'class': 'form-select'}),
             'id_tempo_gestacao': forms.Select(attrs={'class': 'form-select'}),
             'id_raca': forms.Select(attrs={'class': 'form-select'}),
             'id_povo_tradicional': forms.Select(attrs={'class': 'form-select'}),
             'outros_povo_tradicional': forms.TextInput(attrs={'class': 'form-control'}),    
-            'cartao_sus': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '15'}),
-            'cpf': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '11'}),
-            'id_cbo': forms.Select(attrs={'class': 'form-control'}),
+            'cartao_sus': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '18',
+                'inputmode': 'numeric',
+                'id': 'id_cartao_sus',
+                'autocomplete': 'off',
+            }),
+            'cpf': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '14',
+                'inputmode': 'numeric',
+                'id': 'id_cpf',
+                'autocomplete': 'off',
+            }),
+            'id_cbo': forms.Select(attrs={
+                'class': 'form-select select-busca-cbo',
+                'data-placeholder': 'Digite código ou ocupação (mín. 3 caracteres)...',
+            }),
             'nome_mae': forms.TextInput(attrs={'class': 'form-control'}),
             'id_escolaridade': forms.Select(attrs={'class': 'form-select'}),
             'id_pais': forms.Select(attrs={'class': 'form-select'}),
@@ -55,8 +131,21 @@ class OcorrenciaForm(ModelForm):
             'geo_campo1': forms.TextInput(attrs={'class': 'form-control'}),
             'geo_campo2': forms.TextInput(attrs={'class': 'form-control'}),
             'ponto_referencia': forms.TextInput(attrs={'class': 'form-control'}),
-            'cep': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '10'}),
-            'telefone': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '15'}),
+            'cep': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '9',
+                'inputmode': 'numeric',
+                'id': 'id_cep',
+                'autocomplete': 'postal-code',
+                'placeholder': '00000-000',
+            }),
+            'telefone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '16',
+                'inputmode': 'tel',
+                'autocomplete': 'tel',
+                'placeholder': '(00) 00000-0000',
+            }),
             'id_zona': forms.Select(attrs={'class': 'form-select'}),
 
             # Aba 4: Dados do Acidente
@@ -64,11 +153,26 @@ class OcorrenciaForm(ModelForm):
             'tipo_motor': forms.TextInput(attrs={'class': 'form-control'}),
             'data_investigacao': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id': 'id_data_investigacao'}),
             'nome_dono': forms.TextInput(attrs={'class': 'form-control'}),
-            'telefone_dono': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '15'}),
+            'telefone_dono': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '16',
+                'inputmode': 'tel',
+                'autocomplete': 'tel',
+                'placeholder': '(00) 00000-0000',
+            }),
             'nome_condutor': forms.TextInput(attrs={'class': 'form-control'}),
-            'telefone_condutor': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '15'}),
+            'telefone_condutor': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '16',
+                'inputmode': 'tel',
+                'autocomplete': 'tel',
+                'placeholder': '(00) 00000-0000',
+            }),
             'data_atendimento': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id': 'id_data_atendimento'}),
-            'id_cid': forms.Select(attrs={'class': 'form-control'}),
+            'id_cid': forms.Select(attrs={
+                'class': 'form-select select-busca-cid',
+                'data-placeholder': 'Digite código ou descrição CID (mín. 3 caracteres)...',
+            }),
             'id_tipo_escalpelamento': forms.Select(attrs={'class': 'form-select'}),
             'id_causa_acidente': forms.Select(attrs={'class': 'form-select'}),
             'causa_acidente_outros': forms.TextInput(attrs={'class': 'form-control'}),
@@ -86,9 +190,15 @@ class OcorrenciaForm(ModelForm):
 
             # Aba 6: Investigador
             'id_municipio_investigador': forms.Select(attrs={'class': 'form-select'}),
-            'id_cnes_invertigador': forms.Select(attrs={'class': 'form-control'}),
+            'id_cnes_invertigador': forms.Select(attrs={
+                'class': 'form-select select-busca-cnes',
+                'data-placeholder': 'Digite CNES ou nome (mín. 3 caracteres)...',
+            }),
             'nome_invertigador': forms.TextInput(attrs={'class': 'form-control'}),
-            'funcao_invertigador': forms.Select(attrs={'class': 'form-control'}),
+            'funcao_invertigador': forms.Select(attrs={
+                'class': 'form-select select-busca-cbo',
+                'data-placeholder': 'Digite código ou ocupação (mín. 3 caracteres)...',
+            }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -103,8 +213,24 @@ class OcorrenciaForm(ModelForm):
             'funcao_invertigador': Cbo,
         }
 
+        cnes_empty_label = 'Digite CNES ou nome (mín. 3 caracteres)...'
+        cbo_empty_label = 'Digite código ou ocupação (mín. 3 caracteres)...'
+        cid_empty_label = 'Digite código ou descrição CID (mín. 3 caracteres)...'
+        campos_busca_min_3 = (
+            'id_cnes', 'id_cnes_invertigador', 'id_cbo', 'funcao_invertigador', 'id_cid',
+        )
+
         for field_name, model in autocomplete_fields.items():
             if field_name in self.fields:
+                if field_name in ('id_cnes', 'id_cnes_invertigador'):
+                    empty_label = cnes_empty_label
+                elif field_name in ('id_cbo', 'funcao_invertigador'):
+                    empty_label = cbo_empty_label
+                elif field_name == 'id_cid':
+                    empty_label = cid_empty_label
+                else:
+                    empty_label = 'Use a pesquisa para selecionar'
+
                 if self.instance and self.instance.pk:
                     # Se estiver editando, mostrar apenas a opção gravada (se existir)
                     current_value = getattr(self.instance, field_name, None)
@@ -112,50 +238,69 @@ class OcorrenciaForm(ModelForm):
                         # Se há valor gravado, mostrar apenas essa opção
                         self.fields[field_name].queryset = model.objects.filter(pk=current_value.pk)
                         self.fields[field_name].initial = current_value.pk
-                        self.fields[field_name].empty_label = "Selecione..."
+                        self.fields[field_name].empty_label = (
+                            empty_label if field_name in campos_busca_min_3 else 'Selecione...'
+                        )
                     else:
                         # Se não há valor gravado, campo fica vazio
                         self.fields[field_name].queryset = model.objects.none()
-                        self.fields[field_name].empty_label = "Use a pesquisa para selecionar"
+                        self.fields[field_name].empty_label = empty_label
                 else:
                     # Para novo registro, iniciar com queryset vazio
                     # Os itens serão carregados dinamicamente via JavaScript conforme necessário
                     self.fields[field_name].queryset = model.objects.none()
-                    self.fields[field_name].empty_label = "Use a pesquisa para selecionar"
+                    self.fields[field_name].empty_label = empty_label
 
         # Configurar campos de UF - sempre carregar todos os estados
         uf_fields = ['id_uf_notificacao', 'id_uf_residencia', 'id_uf_transferencia']
         for field_name in uf_fields:
             if field_name in self.fields:
                 self.fields[field_name].queryset = Estado.objects.all().order_by('descricao')
-                self.fields[field_name].empty_label = "Selecione..."
-
-        # Configurar campos de município para carregamento dinâmico
-        municipio_fields = ['id_municipio_notificacao', 'id_municipio_residencia', 'id_municipio_transferencia', 'id_municipio_ocorrencia', 'id_municipio_investigador']
-        for field_name in municipio_fields:
-            if field_name in self.fields:
-                if self.instance and self.instance.pk:
-                    # Se estiver editando, carregar todos os municípios para permitir mudança
-                    # mas manter o valor atual selecionado
-                    self.fields[field_name].queryset = Municipios.objects.all()
-                    self.fields[field_name].empty_label = "Selecione..."
-                    
-                    # Garantir que o valor atual seja mantido
-                    current_value = getattr(self.instance, field_name, None)
-                    if current_value:
-                        # Forçar o valor inicial para garantir que apareça no formulário
-                        self.fields[field_name].initial = current_value.pk
+                if field_name == 'id_uf_notificacao':
+                    self.fields[field_name].empty_label = ''
                 else:
-                    # Para novo registro, iniciar com queryset vazio
-                    # Os municípios serão carregados dinamicamente via JavaScript conforme UF selecionada
-                    self.fields[field_name].queryset = Municipios.objects.none()
-                    self.fields[field_name].empty_label = "Selecione uma UF primeiro"
+                    self.fields[field_name].empty_label = 'Selecione...'
+
+        # Municípios do Pará (local do acidente / investigador — sem UF no formulário)
+        municipios_para = Municipios.objects.filter(
+            id_uf_id=UF_PARA_ID,
+            nome_municipio__isnull=False,
+        ).exclude(nome_municipio__exact='').order_by('nome_municipio')
+
+        for field_name in MUNICIPIOS_PARA_FIELDS:
+            if field_name not in self.fields:
+                continue
+            current_value = getattr(self.instance, field_name, None) if self.instance.pk else None
+            qs = municipios_para
+            if current_value and not qs.filter(pk=current_value.pk).exists():
+                qs = Municipios.objects.filter(
+                    Q(id_uf_id=UF_PARA_ID) | Q(pk=current_value.pk),
+                    nome_municipio__isnull=False,
+                ).exclude(nome_municipio__exact='').order_by('nome_municipio')
+            self.fields[field_name].queryset = qs
+            self.fields[field_name].empty_label = 'Selecione...'
+            if current_value:
+                self.fields[field_name].initial = current_value.pk
+
+        # Municípios dependentes da UF (notificação, residência, transferência)
+        for field_name in MUNICIPIOS_UF_DEPENDENTES:
+            if field_name not in self.fields:
+                continue
+            if self.instance and self.instance.pk:
+                self.fields[field_name].queryset = Municipios.objects.all()
+                self.fields[field_name].empty_label = 'Selecione...'
+                current_value = getattr(self.instance, field_name, None)
+                if current_value:
+                    self.fields[field_name].initial = current_value.pk
+            else:
+                self.fields[field_name].queryset = Municipios.objects.none()
+                self.fields[field_name].empty_label = 'Selecione a UF primeiro'
+
+        aplicar_limite_data_hoje(self, OCORRENCIA_DATE_FIELDS)
 
         # Configurar campos de data para garantir carregamento correto na edição
         if self.instance and self.instance.pk:
-            date_fields = ['data_notificacao', 'data_acidente', 'data_cadastro', 'data_nascimento', 
-                          'data_investigacao', 'data_atendimento', 'data_transferencia', 'data_cadastro_atendimento']
-            for field_name in date_fields:
+            for field_name in OCORRENCIA_DATE_FIELDS:
                 if field_name in self.fields:
                     current_value = getattr(self.instance, field_name, None)
                     if current_value:
@@ -171,7 +316,7 @@ class OcorrenciaForm(ModelForm):
         self.fields['id_cnes'].required = True
         self.fields['nome_paciente'].required = True
         self.fields['id_sexo'].required = True
-        self.fields['id_tempo_gestacao'].required = True
+        self.fields['id_tempo_gestacao'].required = False
         self.fields['id_raca'].required = True
         self.fields['num_registro'].required = True
         self.fields['nome_invertigador'].required = True
@@ -208,59 +353,131 @@ class OcorrenciaForm(ModelForm):
     def clean_data_notificacao(self):
         """Valida que a data de notificação não seja no futuro"""
         data = self.cleaned_data.get('data_notificacao')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de notificação não pode ser no futuro.')
         return data
     
     def clean_data_acidente(self):
         """Valida que a data do acidente não seja no futuro"""
         data = self.cleaned_data.get('data_acidente')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data do acidente não pode ser no futuro.')
         return data
     
     def clean_data_cadastro(self):
         """Valida que a data de cadastro não seja no futuro"""
         data = self.cleaned_data.get('data_cadastro')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de cadastro não pode ser no futuro.')
         return data
     
     def clean_data_nascimento(self):
         """Valida que a data de nascimento não seja no futuro"""
         data = self.cleaned_data.get('data_nascimento')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de nascimento não pode ser no futuro.')
         return data
     
     def clean_data_investigacao(self):
         """Valida que a data de investigação não seja no futuro"""
         data = self.cleaned_data.get('data_investigacao')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de investigação não pode ser no futuro.')
         return data
     
     def clean_data_atendimento(self):
         """Valida que a data de atendimento não seja no futuro"""
         data = self.cleaned_data.get('data_atendimento')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de atendimento não pode ser no futuro.')
         return data
     
     def clean_data_transferencia(self):
         """Valida que a data de transferência não seja no futuro"""
         data = self.cleaned_data.get('data_transferencia')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de transferência não pode ser no futuro.')
         return data
     
     def clean_data_cadastro_atendimento(self):
         """Valida que a data de cadastro do atendimento não seja no futuro"""
         data = self.cleaned_data.get('data_cadastro_atendimento')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de cadastro do atendimento não pode ser no futuro.')
         return data
 
+    def clean(self):
+        cleaned_data = super().clean()
+
+        sexo = cleaned_data.get('id_sexo')
+        gestacao = cleaned_data.get('id_tempo_gestacao')
+        if sexo_e_feminino(sexo):
+            if not gestacao:
+                self.add_error('id_tempo_gestacao', 'Informe o tempo de gestação.')
+        else:
+            nao_aplica = tempo_gestacao_nao_aplica()
+            if nao_aplica:
+                cleaned_data['id_tempo_gestacao'] = nao_aplica
+
+        data_nasc = cleaned_data.get('data_nascimento')
+        if data_nasc:
+            ref = data_referencia_para_idade(cleaned_data)
+            if data_nasc > ref:
+                self.add_error(
+                    'data_nascimento',
+                    'A data de nascimento não pode ser posterior à data de notificação.',
+                )
+            else:
+                idade_calc = calcular_idade_anos(data_nasc, ref)
+                if idade_calc is not None:
+                    if idade_calc > IDADE_MAXIMA:
+                        self.add_error(
+                            'data_nascimento',
+                            f'A idade calculada ({idade_calc} anos) não pode ser superior a {IDADE_MAXIMA} anos.',
+                        )
+                    else:
+                        cleaned_data['idade'] = str(idade_calc)
+
+        return cleaned_data
+
+    def clean_idade(self):
+        idade = self.cleaned_data.get('idade')
+        if not idade:
+            return idade
+
+        idade = str(idade).strip()
+        if not idade.isdigit():
+            raise ValidationError('Informe a idade em anos (número inteiro).')
+
+        valor = int(idade)
+        if valor < 0:
+            raise ValidationError('A idade não pode ser negativa.')
+        if valor > IDADE_MAXIMA:
+            raise ValidationError(f'A idade não pode ser superior a {IDADE_MAXIMA} anos.')
+
+        return str(valor)
+
+    def clean_cpf(self):
+        cpf = self.cleaned_data.get('cpf')
+        if not cpf:
+            return cpf
+
+        cpf_limpo = limpar_digitos(cpf)
+        if not validar_cpf(cpf_limpo):
+            raise ValidationError('CPF inválido. Verifique os números digitados.')
+
+        return cpf_limpo
+
+    def clean_cartao_sus(self):
+        cartao = self.cleaned_data.get('cartao_sus')
+        if not cartao:
+            return cartao
+
+        cns_limpo = limpar_digitos(cartao)
+        if not validar_cns(cns_limpo):
+            raise ValidationError('Cartão SUS (CNS) inválido. Verifique os 15 dígitos.')
+
+        return cns_limpo
 
 
 class EvolucaoTratamentoForm(ModelForm):
@@ -271,7 +488,10 @@ class EvolucaoTratamentoForm(ModelForm):
         fields = '__all__'
         widgets = {
             'ocorrencia': forms.HiddenInput(),
-            'id_unidade_atendimento': forms.Select(attrs={'class': 'form-control'}),
+            'id_unidade_atendimento': forms.Select(attrs={
+                'class': 'form-select select-busca-cnes',
+                'data-placeholder': 'Digite CNES ou nome (mín. 3 caracteres)...',
+            }),
             'data_entrada': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id': 'id_data_entrada'}),
             'outros_procedimentos': forms.TextInput(attrs={'class': 'form-control'}),
             'outros_complicacoes': forms.TextInput(attrs={'class': 'form-control'}),
@@ -284,9 +504,15 @@ class EvolucaoTratamentoForm(ModelForm):
             'data_encerramento': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id': 'id_data_encerramento'}),
             'evolucao': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'id_municipio_investigacao': forms.Select(attrs={'class': 'form-select'}),
-            'id_cnes_investigacao': forms.Select(attrs={'class': 'form-control'}),
+            'id_cnes_investigacao': forms.Select(attrs={
+                'class': 'form-select select-busca-cnes',
+                'data-placeholder': 'Digite CNES ou nome (mín. 3 caracteres)...',
+            }),
             'nome_investigador': forms.TextInput(attrs={'class': 'form-control'}),
-            'id_funcao_investigador': forms.Select(attrs={'class': 'form-control'}),
+            'id_funcao_investigador': forms.Select(attrs={
+                'class': 'form-select select-busca-cbo',
+                'data-placeholder': 'Digite código ou ocupação (mín. 3 caracteres)...',
+            }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -299,8 +525,19 @@ class EvolucaoTratamentoForm(ModelForm):
             'id_funcao_investigador': Cbo,
         }
 
+        cnes_empty_label = 'Digite CNES ou nome (mín. 3 caracteres)...'
+        cbo_empty_label = 'Digite código ou ocupação (mín. 3 caracteres)...'
+        campos_busca_min_3 = ('id_unidade_atendimento', 'id_cnes_investigacao', 'id_funcao_investigador')
+
         for field_name, model in autocomplete_fields.items():
             if field_name in self.fields:
+                if field_name in ('id_unidade_atendimento', 'id_cnes_investigacao'):
+                    empty_label = cnes_empty_label
+                elif field_name == 'id_funcao_investigador':
+                    empty_label = cbo_empty_label
+                else:
+                    empty_label = 'Use a pesquisa para selecionar'
+
                 if self.instance and self.instance.pk:
                     # Se estiver editando, mostrar apenas a opção gravada (se existir)
                     current_value = getattr(self.instance, field_name, None)
@@ -308,22 +545,24 @@ class EvolucaoTratamentoForm(ModelForm):
                         # Se há valor gravado, mostrar apenas essa opção
                         self.fields[field_name].queryset = model.objects.filter(pk=current_value.pk)
                         self.fields[field_name].initial = current_value.pk
-                        self.fields[field_name].empty_label = "Selecione..."
+                        self.fields[field_name].empty_label = (
+                            empty_label if field_name in campos_busca_min_3 else 'Selecione...'
+                        )
                     else:
                         # Se não há valor gravado, campo fica vazio
                         self.fields[field_name].queryset = model.objects.none()
-                        self.fields[field_name].empty_label = "Use a pesquisa para selecionar"
+                        self.fields[field_name].empty_label = empty_label
                 else:
                     # Para novo registro, iniciar com queryset vazio
                     # Os itens serão carregados dinamicamente via JavaScript conforme necessário
                     self.fields[field_name].queryset = model.objects.none()
-                    self.fields[field_name].empty_label = "Use a pesquisa para selecionar"
-        
+                    self.fields[field_name].empty_label = empty_label
+
+        aplicar_limite_data_hoje(self, EVOLUCAO_DATE_FIELDS)
+
         # Configurar campos de data para garantir carregamento correto na edição
         if self.instance and self.instance.pk:
-            date_fields = ['data_entrada', 'data_entrada_espaco_acolher', 'data_saida_espaco_acolher', 
-                          'data_obito', 'data_encerramento']
-            for field_name in date_fields:
+            for field_name in EVOLUCAO_DATE_FIELDS:
                 if field_name in self.fields:
                     current_value = getattr(self.instance, field_name, None)
                     if current_value:
@@ -358,35 +597,35 @@ class EvolucaoTratamentoForm(ModelForm):
     def clean_data_entrada(self):
         """Valida que a data de entrada não seja no futuro"""
         data = self.cleaned_data.get('data_entrada')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de entrada não pode ser no futuro.')
         return data
     
     def clean_data_entrada_espaco_acolher(self):
         """Valida que a data de entrada no espaço acolher não seja no futuro"""
         data = self.cleaned_data.get('data_entrada_espaco_acolher')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de entrada no espaço acolher não pode ser no futuro.')
         return data
     
     def clean_data_saida_espaco_acolher(self):
         """Valida que a data de saída do espaço acolher não seja no futuro"""
         data = self.cleaned_data.get('data_saida_espaco_acolher')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de saída do espaço acolher não pode ser no futuro.')
         return data
     
     def clean_data_obito(self):
         """Valida que a data de óbito não seja no futuro"""
         data = self.cleaned_data.get('data_obito')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de óbito não pode ser no futuro.')
         return data
     
     def clean_data_encerramento(self):
         """Valida que a data de encerramento não seja no futuro"""
         data = self.cleaned_data.get('data_encerramento')
-        if data and data > date.today():
+        if data and data > timezone.localdate():
             raise ValidationError('A data de encerramento não pode ser no futuro.')
         return data
 
@@ -417,7 +656,10 @@ class OcorrenciaParteAtingidaForm(ModelForm):
         model = OcorrenciaHasTipoParteAtingida
         fields = ('tipo_parte_atingida_idtipo_parte_atingida',)
         widgets = {
-            'tipo_parte_atingida_idtipo_parte_atingida': forms.Select(attrs={'class': 'form-select'})
+            'tipo_parte_atingida_idtipo_parte_atingida': forms.Select(attrs={
+                'class': 'form-select',
+                'data-placeholder': 'Selecione a parte atingida...',
+            })
         }
     
     def __init__(self, *args, **kwargs):
@@ -464,7 +706,7 @@ class OcorrenciaParteAtingidaFormSet(inlineformset_factory(
     Ocorrencia,
     OcorrenciaHasTipoParteAtingida,
     form=OcorrenciaParteAtingidaForm,
-    extra=0,  # Não mostrar formulário vazio por padrão
+    extra=1,  # Uma linha vazia para nova ocorrência / botão "Adicionar"
     can_delete=True
 )):
     def get_form_kwargs(self, index):
