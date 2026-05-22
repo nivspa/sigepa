@@ -11,9 +11,10 @@ services:
       SLEEP_TIME: 5m
       FILTER_SERVICES: name=sigepa_sigepa
       IGNORELIST_SERVICES: shepherd-sigepa_shepherd
-      # Se a imagem for PRIVADA no Docker Hub:
-      # REGISTRY_USER: seu_usuario
-      # REGISTRY_PASSWORD: token_dockerhub
+      # OBRIGATÓRIO em produção — login no Docker Hub (evita toomanyrequests)
+      # Defina no Portainer: DOCKERHUB_USER e DOCKERHUB_TOKEN (ver deploy/shepherd.env.example)
+      REGISTRY_USER: ${DOCKERHUB_USER:-nivspa}
+      REGISTRY_PASSWORD: ${DOCKERHUB_TOKEN}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:

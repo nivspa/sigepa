@@ -52,12 +52,45 @@ Confirme no Portainer que o serviço usa a imagem:
 nivspa/sigepa:latest
 ```
 
-Se a imagem for **privada** no Docker Hub, descomente no `shepherd-stack.yml`:
+No **Portainer**, ao subir o stack do Shepherd, defina variáveis de ambiente (ou arquivo `.env` no servidor, **fora do Git**):
 
-```yaml
-REGISTRY_USER: nivspa
-REGISTRY_PASSWORD: <token ou senha>
+```env
+DOCKERHUB_USER=nivspa
+DOCKERHUB_TOKEN=seu_token_do_docker_hub
 ```
+
+O Shepherd usa isso para `docker login` antes de puxar imagens — evita o erro **toomanyrequests**.
+
+> **Não commite o token no Git.** Só configure no Portainer / servidor.
+
+---
+
+## Erro do Shepherd: `toomanyrequests` / `Image does not exist`
+
+Logs típicos:
+
+```text
+toomanyrequests: You have reached your unauthenticated pull rate limit
+Image nivspa/sigepa:latest does not exist or it is not available
+```
+
+| Causa | O que fazer |
+|-------|-------------|
+| **Rate limit** | Shepherd puxava imagem **sem login**. Configure `REGISTRY_USER` + `REGISTRY_PASSWORD` (token Docker Hub). |
+| **Imagem inexistente** | GitHub Actions ainda não publicou ou falhou. Veja **Actions** no GitHub e se existe `nivspa/sigepa:latest` no Docker Hub. |
+| **Pull falhou** | O segundo erro às vezes é consequência do primeiro — corrija o login e tente de novo. |
+
+**Correção rápida no servidor (SSH ou Portainer console):**
+
+```bash
+docker login -u nivspa
+# cole o token Docker Hub quando pedir senha
+
+docker pull nivspa/sigepa:latest
+docker service update --image nivspa/sigepa:latest sigepa_sigepa
+```
+
+Depois atualize o stack do Shepherd com `DOCKERHUB_TOKEN` para os próximos ciclos de 5 min.
 
 ---
 
