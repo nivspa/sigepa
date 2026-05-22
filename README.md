@@ -114,6 +114,12 @@ O sistema estará disponível em `http://localhost:8000`
 - **django-environ** - Gerenciamento de variáveis de ambiente
 - **mysqlclient** - Driver MySQL para Python
 
+## Deploy em produção
+
+**Automático (recomendado):** push na `main` → [GitHub Actions](docs/CI_CD_GITHUB.md) publica `nivspa/sigepa:latest` → Shepherd atualiza o servidor.
+
+**Manual:** [docs/COMO_ATUALIZAR_PRODUCAO.md](docs/COMO_ATUALIZAR_PRODUCAO.md).
+
 ## Próximos Passos
 
 1. Implementar outras aplicações modulares conforme necessário

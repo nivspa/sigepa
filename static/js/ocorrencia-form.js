@@ -1,5 +1,6 @@
+// SIGEPA-STATIC-VERSION: 2026-05-22-ficha-v2 (conferir no DevTools → Rede)
 // Script para formulário de ocorrência
-console.log('🚀 Carregando script de pesquisa...');
+console.log('🚀 SIGEPA ocorrencia-form — build 2026-05-22-ficha-v2');
 
 // Variáveis globais para controle de paginação
 let currentTargetField = null;

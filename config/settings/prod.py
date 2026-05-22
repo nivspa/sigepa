@@ -56,6 +56,19 @@ CACHES = {
     }
 }
 
+# Estáticos com hash no nome (ocorrencia-form.abc123.js) — evita JS/CSS antigo no navegador
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
+
+# Arquivos com hash podem ficar em cache longo; o nome muda a cada deploy
+WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: True
+
 # Logging configuration para produção
 LOGGING['handlers']['file']['level'] = 'WARNING'
 LOGGING['loggers']['django']['level'] = 'WARNING'

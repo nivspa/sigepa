@@ -1,3 +1,4 @@
+// SIGEPA-STATIC-VERSION: 2026-05-22-ficha-v2
 /**
  * Campos de data com botões − / +:
  * - vazio + "+" → data de hoje

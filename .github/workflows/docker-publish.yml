@@ -1,0 +1,63 @@
+# Publica nivspa/sigepa:latest no Docker Hub a cada push na main.
+# O Shepherd em produção puxa a tag latest automaticamente (ver deploy/shepherd-stack.yml).
+
+name: Publicar imagem Docker
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: nivspa/sigepa
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login no Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build e push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          build-args: |
+            SECRET_KEY=ci-build-dummy-secret
+            DB_NAME=dummy
+            DB_USER=dummy
+            DB_PASSWORD=dummy
+            DB_HOST=dummy
+            EMAIL_HOST_USER=ci@dummy.local
+            EMAIL_HOST_PASSWORD=dummy
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Resumo
+        run: |
+          echo "Imagem publicada:"
+          echo "  ${{ env.IMAGE }}:latest"
+          echo "  ${{ env.IMAGE }}:${{ github.sha }}"
+          echo ""
+          echo "Producao (Shepherd): aguarde ~5 min ou force redeploy no Portainer."

@@ -14,8 +14,8 @@ services:
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT:-3306}
     volumes:
+      # media e logs persistem; estáticos vêm da imagem (collectstatic no build)
       - media_data:/app/media
-      - static_data:/app/staticfiles
       - logs_data:/app/logs
     deploy:
       resources:
@@ -29,5 +29,4 @@ services:
 
 volumes:
   media_data:
-  static_data:
   logs_data:
