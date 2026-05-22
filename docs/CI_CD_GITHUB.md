@@ -52,12 +52,14 @@ Confirme no Portainer que o serviço usa a imagem:
 nivspa/sigepa:latest
 ```
 
-Se a imagem for **privada** no Docker Hub, descomente no `shepherd-stack.yml`:
+No **Portainer**, no stack do **Shepherd**, defina (arquivo `deploy/shepherd.env.example`):
 
-```yaml
-REGISTRY_USER: nivspa
-REGISTRY_PASSWORD: <token ou senha>
+```env
+DOCKERHUB_USER=nivspa
+DOCKERHUB_TOKEN=seu_token_do_docker_hub
 ```
+
+Depois **Update the stack**. Não commite o token no Git.
 
 ---
 
@@ -97,14 +99,45 @@ No GitHub: **Actions** → **Publicar imagem Docker** → **Run workflow**.
 
 ---
 
-## 8. Problemas comuns
+## 8. Onde clicar no Portainer (passo a passo)
+
+O guia “atualizar na mão” pode ser feito **sem terminal**, só na interface.
+
+### A) Atualizar o SIGEPA (imagem nova)
+
+1. Menu esquerdo → **Services** (Serviços).  
+   *Não* use Containers — no Swarm o SIGEPA é um **serviço**.
+2. Clique em **`sigepa_sigepa`** (nome exato pode variar; procure o do stack `sigepa`).
+3. Botão **Update the service** (Atualizar serviço).
+4. **Image:** `nivspa/sigepa:latest`
+5. Ative **Pull latest image version**.
+6. Se pedir registry: antes cadastre em **Registries** → Add → Docker Hub → usuário `nivspa` + **token** como senha.
+7. Confirme **Update** — aguarde o serviço ficar verde de novo.
+
+### B) Configurar o Shepherd (token Docker Hub)
+
+1. Menu **Stacks** → stack do Shepherd.
+2. **Editor** ou aba de variáveis de ambiente.
+3. Adicione `DOCKERHUB_USER=nivspa` e `DOCKERHUB_TOKEN=<token>`.
+4. **Update the stack**.
+
+### C) Terminal (só se A não funcionar)
+
+Use o console do **nó/host** (manager), **não** o console do container do site:
+
+**Hosts** → nó manager → **>_ Console** → aí sim os comandos `docker login`, `docker pull`, `docker service update`.
+
+---
+
+## 9. Problemas comuns
 
 | Sintoma | O que verificar |
 |---------|------------------|
-| Actions falhou no login | Secrets `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` |
-| Actions OK, site igual | Shepherd ativo? Serviço usa `nivspa/sigepa:latest`? |
-| JS antigo | Volume `static_data` ainda montado? Remover e redeploy. |
-| Shepherd não puxa | Imagem privada sem `REGISTRY_USER` no shepherd |
+| `toomanyrequests` no log do Shepherd | Shepherd sem login no Hub → passo **B** acima |
+| `Image does not exist` | GitHub Actions falhou ou pull bloqueado → **Registries** + **Services → Update** |
+| Actions falhou no login | Secrets `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` no GitHub |
+| Actions OK, site igual | Volume `static_data` antigo? **Volumes** → remover `static_data` |
+| JS antigo no navegador | Ctrl+F5; arquivo JS deve ter hash no nome (F12 → Rede) |
 
 ---
 
