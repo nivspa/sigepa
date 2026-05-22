@@ -28,6 +28,8 @@ Portainer → **PRD** → **Services** → `sigepa_sigepa` → **Update the serv
 3. Cole o conteúdo de `deploy/shepherd-stack.yml`
 4. **Deploy the stack**
 
+`FILTER_SERVICES` tem que ser formato Docker, ex.: `name=sigepa_sigepa` (não só `sigepa`).
+
 ---
 
 ## Passo 3 — GitHub
